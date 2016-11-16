@@ -14,7 +14,12 @@ const reducer = (state = initialValue, action) => {
     return { todos: [...state.todos, action.content] }
 }
 
-const store = createStore(reducer)
+const logger = store => next => action => { // eslint-disable-line no-unused-vars
+  console.log('logger> action=', action)
+  return next(action)
+}
+
+const store = createStore(reducer, applyMiddleware(logger))
 
 store.subscribe(() => {
   console.log('store\'s state=', store.getState())
