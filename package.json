@@ -9,6 +9,7 @@
     "redux": "^3.6.0"
   },
   "scripts": {
-    "start": "babel-node index.js"
+    "start": "babel-node index.js",
+    "lint": "eslint"
   }
 }
