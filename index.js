@@ -18,6 +18,7 @@ const undoSuccess = (state) => ({ type: UNDO_SUCCESS, state })
 const fetch = () => { return Promise.resolve(['this', 'that']) }
 
 const fetchTodos = (store) => {
+  if (store.getState().todos.length > 0) return Promise.resolve()
   store.dispatch(getTodos())
   return fetch('/api/todos')
     .then(todos => {
@@ -25,7 +26,11 @@ const fetchTodos = (store) => {
     })
 }
 
-const initialValue = { todos: [] }
+// mock localStorage
+const localStorage = { getItem: () => ['this-cached', 'that-cached'] }
+
+// populate with stored data
+const initialValue = { todos: localStorage.getItem('todos') }
 
 // should be pure!
 const reducer = (state = initialValue, action) => {
@@ -36,7 +41,7 @@ const reducer = (state = initialValue, action) => {
   else if (action.type == GET_TODO_SUCCESS)
     return { todos: action.todos, fetching: false }
   else if (action.type == UNDO_SUCCESS)
-    return action.state 
+    return action.state
   else
     return state
 }
