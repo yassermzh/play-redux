@@ -9,6 +9,7 @@ const UNDO_SUCCESS = 'UNDO_SUCESS'
 const API = 'API'
 const API_REQUEST = 'API_REQUEST'
 const API_SUCCESS = 'API_SUCCESS'
+const REDIRECT = 'REDIRECT'
 
 
 // action creator
@@ -20,6 +21,7 @@ const undoSuccess = (state) => ({ type: UNDO_SUCCESS, state })
 const api = (url, key) => ({ type: API, url, meta: { key } })
 const apiRequest = () => ({ type: API_REQUEST })
 const apiSuccess = (content, key) => ({ type: API_SUCCESS, content, meta: { key } })
+const redirect = () => ({ type: REDIRECT })
 
 // mock fetch
 const fetch = () => { return Promise.resolve(['this', 'that']) }
@@ -34,8 +36,21 @@ const apiMiddleware = store => next => action => {
   }
 }
 
+const authMiddleware = store => next => action => {
+  if(action.type == API){
+    if(getToken())
+      return next(action)
+    else
+      return next(redirect())
+  }
+  else
+    return next(action)
+}
+
 // mock localStorage
 const localStorage = { getItem: () => ['this-cached', 'that-cached'] }
+
+const getToken = () => null
 
 // populate with stored data
 const initialValue = { todos: localStorage.getItem('todos') }
@@ -83,7 +98,13 @@ const delayMiddleware = store => next => action => { // eslint-disable-line no-u
   }
 }
 
-const store = createStore(reducer, applyMiddleware(undoMiddleware, delayMiddleware, apiMiddleware, logger))
+const store = createStore(reducer, applyMiddleware(
+  authMiddleware, 
+  undoMiddleware, 
+  delayMiddleware, 
+  apiMiddleware, 
+  logger
+))
 
 store.subscribe(() => {
   console.log('store\'s state=', store.getState())
