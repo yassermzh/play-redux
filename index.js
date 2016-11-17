@@ -6,6 +6,10 @@ const GET_TODO = 'GET_TODO'
 const GET_TODO_SUCCESS = 'GET_TODO_SUCCESS'
 const UNDO = 'UNDO'
 const UNDO_SUCCESS = 'UNDO_SUCESS'
+const API = 'API'
+const API_REQUEST = 'API_REQUEST'
+const API_SUCCESS = 'API_SUCCESS'
+
 
 // action creator
 const addTodo = (content, delay) => ({ type: ADD_TODO, content, meta: { delay } })
@@ -13,17 +17,21 @@ const getTodos = () => ({ type: GET_TODO })
 const getTodosSuccess = (todos) => ({ type: GET_TODO_SUCCESS, todos })
 const undo = () => ({ type: UNDO })
 const undoSuccess = (state) => ({ type: UNDO_SUCCESS, state })
+const api = (url, key) => ({ type: API, url, meta: { key } })
+const apiRequest = () => ({ type: API_REQUEST })
+const apiSuccess = (content, key) => ({ type: API_SUCCESS, content, meta: { key } })
 
 // mock fetch
 const fetch = () => { return Promise.resolve(['this', 'that']) }
 
-const fetchTodos = (store) => {
-  if (store.getState().todos.length > 0) return Promise.resolve()
-  store.dispatch(getTodos())
-  return fetch('/api/todos')
-    .then(todos => {
-      store.dispatch(getTodosSuccess(todos))
+const apiMiddleware = store => next => action => {
+  if(action.type == API){
+    next(apiRequest())
+    fetch(action.url)
+    .then(result => {
+      next(apiSuccess(result, action.meta.key))
     })
+  }
 }
 
 // mock localStorage
@@ -36,12 +44,13 @@ const initialValue = { todos: localStorage.getItem('todos') }
 const reducer = (state = initialValue, action) => {
   if (action.type == ADD_TODO)
     return { todos: [...state.todos, action.content] }
-  else if (action.type == GET_TODO)
+  else if (action.type == API_REQUEST)
     return { fetching: true }
-  else if (action.type == GET_TODO_SUCCESS)
-    return { todos: action.todos, fetching: false }
+  else if (action.type == API_SUCCESS)
+    return { [action.meta.key]: action.content, fetching: false }
   else if (action.type == UNDO_SUCCESS)
     return action.state
+  
   else
     return state
 }
@@ -74,18 +83,16 @@ const delayMiddleware = store => next => action => { // eslint-disable-line no-u
   }
 }
 
-const store = createStore(reducer, applyMiddleware(logger, undoMiddleware, delayMiddleware))
+const store = createStore(reducer, applyMiddleware(undoMiddleware, delayMiddleware, apiMiddleware, logger))
 
 store.subscribe(() => {
   console.log('store\'s state=', store.getState())
 })
 
-fetchTodos(store)
-  .then(() => {
-    store.dispatch(addTodo('do this'))
-    store.dispatch(undo())
-    store.dispatch(addTodo('do that', 1000))
-    store.dispatch(undo())
-  })
+//store.dispatch(addTodo('do this'))
+//store.dispatch(undo())
+//store.dispatch(addTodo('do that', 1000))
+//store.dispatch(undo())
+store.dispatch(api('/api/users', 'users'))
 
 // action -> middleware -> ... -> store -> view
