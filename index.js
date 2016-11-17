@@ -8,7 +8,7 @@ const UNDO = 'UNDO'
 const UNDO_SUCCESS = 'UNDO_SUCESS'
 
 // action creator
-const addTodo = (content) => ({ type: ADD_TODO, content })
+const addTodo = (content, delay) => ({ type: ADD_TODO, content, meta: { delay } })
 const getTodos = () => ({ type: GET_TODO })
 const getTodosSuccess = (todos) => ({ type: GET_TODO_SUCCESS, todos })
 const undo = () => ({ type: UNDO })
@@ -63,7 +63,18 @@ const undoMiddleware = store => next => action => {
   return result
 }
 
-const store = createStore(reducer, applyMiddleware(logger, undoMiddleware))
+const delayMiddleware = store => next => action => { // eslint-disable-line no-unused-vars
+  if (action.meta && action.meta.delay) {
+    setTimeout(() => {
+      next(action)
+    }, action.meta.delay)   
+  }
+  else {
+    return next(action)
+  }
+}
+
+const store = createStore(reducer, applyMiddleware(logger, undoMiddleware, delayMiddleware))
 
 store.subscribe(() => {
   console.log('store\'s state=', store.getState())
@@ -73,7 +84,8 @@ fetchTodos(store)
   .then(() => {
     store.dispatch(addTodo('do this'))
     store.dispatch(undo())
-    store.dispatch(addTodo('do that'))
+    store.dispatch(addTodo('do that', 1000))
+    store.dispatch(undo())
   })
 
 // action -> middleware -> ... -> store -> view
